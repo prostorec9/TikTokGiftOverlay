@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="40dp"
+    android:height="40dp"
+    android:viewportWidth="40"
+    android:viewportHeight="40">
+    <!-- Лента сверху -->
+    <path
+        android:fillColor="#FE2C55"
+        android:pathData="M4,14h32v6H4z"/>
+    <!-- Коробка -->
+    <path
+        android:fillColor="#FF6B8A"
+        android:pathData="M6,20h28v16H6z"/>
+    <!-- Вертикальная лента -->
+    <path
+        android:fillColor="#FE2C55"
+        android:pathData="M17,14h6v22h-6z"/>
+    <!-- Бант левый -->
+    <path
+        android:fillColor="#FE2C55"
+        android:pathData="M20,14 C20,14 8,6 10,4 C12,2 20,12 20,14z"/>
+    <!-- Бант правый -->
+    <path
+        android:fillColor="#FE2C55"
+        android:pathData="M20,14 C20,14 32,6 30,4 C28,2 20,12 20,14z"/>
+</vector>

@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#0F0F0F">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="24dp">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="TikTok Gift Overlay"
+            android:textColor="#FFFFFF"
+            android:textSize="26sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="6dp"
+            android:gravity="center" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Подарки TikTok LIVE поверх любого приложения"
+            android:textColor="#AAAAAA"
+            android:textSize="13sp"
+            android:gravity="center"
+            android:layout_marginBottom="32dp" />
+
+        <TextView
+            android:id="@+id/status_text"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Остановлен"
+            android:textColor="#888888"
+            android:textSize="14sp"
+            android:gravity="center"
+            android:padding="12dp"
+            android:background="@drawable/bg_status"
+            android:layout_marginBottom="24dp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@username стримера TikTok"
+            android:textColor="#CCCCCC"
+            android:textSize="13sp"
+            android:layout_marginBottom="8dp" />
+
+        <EditText
+            android:id="@+id/username_input"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:hint="@ваш_тикток"
+            android:hintTextColor="#555555"
+            android:textColor="#FFFFFF"
+            android:textSize="16sp"
+            android:background="@drawable/bg_input"
+            android:padding="14dp"
+            android:inputType="text"
+            android:imeOptions="actionDone"
+            android:layout_marginBottom="20dp" />
+
+        <Button
+            android:id="@+id/start_button"
+            android:layout_width="match_parent"
+            android:layout_height="54dp"
+            android:text="НАЧАТЬ"
+            android:textSize="16sp"
+            android:textColor="#FFFFFF"
+            android:backgroundTint="#FE2C55"
+            android:layout_marginBottom="12dp" />
+
+        <Button
+            android:id="@+id/stop_button"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:text="СТОП"
+            android:textSize="14sp"
+            android:textColor="#CCCCCC"
+            android:backgroundTint="#2A2A2A"
+            android:layout_marginBottom="32dp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Инструкция:"
+            android:textColor="#FFFFFF"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="8dp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="1. Дайте разрешение Поверх других приложений\n\n2. Введите @username TikTok стримера\n\n3. Нажмите НАЧАТЬ\n\n4. Сверните приложение - подарки будут появляться слева поверх любого экрана\n\n5. Работает даже на рабочем столе!"
+            android:textColor="#999999"
+            android:textSize="13sp"
+            android:lineSpacingMultiplier="1.4" />
+
+    </LinearLayout>
+</ScrollView>

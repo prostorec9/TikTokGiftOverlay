@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.TikTokGiftOverlay" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="colorPrimary">#FE2C55</item>
+        <item name="colorPrimaryVariant">#C0003C</item>
+        <item name="colorOnPrimary">#FFFFFF</item>
+        <item name="android:windowBackground">#0F0F0F</item>
+        <item name="android:statusBarColor">#0F0F0F</item>
+    </style>
+</resources>

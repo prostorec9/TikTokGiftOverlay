@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Тёмный полупрозрачный фон карточки подарка
+    Точно как у TikTok LIVE: тёмный с прозрачностью ~80%
+-->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+
+    <!-- Тёмный фон как на скриншоте -->
+    <solid android:color="#CC1A1A1A" />
+
+    <!-- Скруглённые углы -->
+    <corners android:radius="36dp" />
+
+</shape>

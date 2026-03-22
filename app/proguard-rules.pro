@@ -1,0 +1,7 @@
+-keep class com.tiktok.giftoverlay.** { *; }
+-keepattributes *Annotation*
+-keep class okhttp3.** { *; }
+-keep class com.google.gson.** { *; }
+-keep class com.bumptech.glide.** { *; }
+-dontwarn okhttp3.**
+-dontwarn okio.**
