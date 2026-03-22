@@ -28,6 +28,12 @@ jobs:
       - name: Install build tools
         run: sdkmanager "build-tools;34.0.0" "platforms;android-34"
 
+      - name: Download Gradle wrapper jar
+        run: |
+          mkdir -p gradle/wrapper
+          curl -L "https://github.com/gradle/gradle/raw/v8.2.0/gradle/wrapper/gradle-wrapper.jar" \
+            -o gradle/wrapper/gradle-wrapper.jar
+
       - name: Make gradlew executable
         run: chmod +x gradlew
 
