@@ -96,33 +96,32 @@ public class GiftOverlayManager {
     }
 
     private WindowManager.LayoutParams createLayoutParams(int slot) {
-        float density = context.getResources().getDisplayMetrics().density;
+    float density = context.getResources().getDisplayMetrics().density;
 
-        int cardHeight = (int)(CARD_HEIGHT_DP * density);
-        int spacing = (int)(CARD_SPACING_DP * density);
-        int marginTop = (int)(CARD_MARGIN_TOP_DP * density);
+    int cardWidth  = (int)(380 * density);
+    int cardHeight = (int)(90  * density);
+    int spacing    = (int)(10  * density);
+    int marginTop  = (int)(24  * density);
 
-        // Вертикальная позиция: слот 0 наверху, далее вниз
-        int yOffset = marginTop + (slot * (cardHeight + spacing));
+    int yOffset = marginTop + (slot * (cardHeight + spacing));
 
-        WindowManager.LayoutParams params = new WindowManager.LayoutParams(
-                (int)(300 * density),  // ширина карточки
-                cardHeight,
-                android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O
-                        ? WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
-                        : WindowManager.LayoutParams.TYPE_PHONE,
-                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
-                        | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL
-                        | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
-                android.graphics.PixelFormat.TRANSLUCENT
-        );
+    WindowManager.LayoutParams params = new WindowManager.LayoutParams(
+            cardWidth,
+            cardHeight,
+            android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O
+                    ? WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+                    : WindowManager.LayoutParams.TYPE_PHONE,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
+                    | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL
+                    | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
+            android.graphics.PixelFormat.TRANSLUCENT
+    );
 
-        params.gravity = Gravity.TOP | Gravity.START;
-        params.x = 0;       // Слева
-        params.y = yOffset; // Отступ сверху зависит от слота
-
-        return params;
-    }
+    params.gravity = Gravity.TOP | Gravity.START;
+    params.x = 0;
+    params.y = yOffset;
+    return params;
+}
 
     /**
      * Убрать все карточки с экрана
