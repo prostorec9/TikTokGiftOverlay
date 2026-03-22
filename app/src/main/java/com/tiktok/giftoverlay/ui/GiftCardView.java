@@ -63,20 +63,20 @@ public class GiftCardView extends FrameLayout {
             avatarImage.setImageResource(R.drawable.ic_avatar_placeholder);
         }
 
-        // Картинка подарка через прокси-сервер
-        if (gift.giftImageUrl != null && !gift.giftImageUrl.isEmpty()) {
-            Glide.with(getContext())
-                .load(gift.giftImageUrl)
-                .apply(new RequestOptions()
-                    .diskCacheStrategy(DiskCacheStrategy.ALL)
-                    .placeholder(R.drawable.ic_gift_placeholder)
-                    .error(R.drawable.ic_gift_placeholder)
-                    .override(120, 120)
-                    .fitCenter())
-                .into(giftImage);
-        } else {
-            giftImage.setImageResource(R.drawable.ic_gift_placeholder);
-        }
+        // Загружаем картинку подарка через прокси-сервер
+if (gift.giftImageUrl != null && !gift.giftImageUrl.isEmpty()) {
+    Glide.with(getContext())
+        .load(gift.giftImageUrl)
+        .apply(new RequestOptions()
+            .diskCacheStrategy(DiskCacheStrategy.ALL)
+            .placeholder(R.drawable.ic_gift_placeholder)
+            .error(R.drawable.ic_gift_placeholder)
+            .override(120, 120)
+            .fitCenter())
+        .into(giftImage);
+} else {
+    giftImage.setImageResource(R.drawable.ic_gift_placeholder);
+}
 
         animateIn();
 
