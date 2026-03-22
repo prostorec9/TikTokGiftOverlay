@@ -55,7 +55,6 @@
             android:layout_width="match_parent"
             android:layout_height="52dp"
             android:hint="@ваш_тикток"
-            android:hintTextColor="#555555"
             android:textColor="#FFFFFF"
             android:textSize="16sp"
             android:background="@drawable/bg_input"
