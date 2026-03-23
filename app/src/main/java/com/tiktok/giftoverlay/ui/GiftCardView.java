@@ -47,7 +47,6 @@ public class GiftCardView extends FrameLayout {
         nicknameText = findViewById(R.id.nickname_text);
         actionText   = findViewById(R.id.action_text);
 
-        // При нажатии — копируем username в буфер
         setOnClickListener(v -> {
             if (!currentUsername.isEmpty()) {
                 ClipboardManager clipboard = (ClipboardManager)
@@ -67,7 +66,6 @@ public class GiftCardView extends FrameLayout {
         nicknameText.setText(gift.nickname);
         actionText.setText("sent " + gift.giftName);
 
-        // Аватарка
         if (gift.avatarUrl != null && !gift.avatarUrl.isEmpty()) {
             Glide.with(getContext())
                 .load(gift.avatarUrl)
@@ -81,7 +79,6 @@ public class GiftCardView extends FrameLayout {
             avatarImage.setImageResource(R.drawable.ic_avatar_placeholder);
         }
 
-        // Картинка подарка через прокси
         if (gift.giftImageUrl != null && !gift.giftImageUrl.isEmpty()) {
             Glide.with(getContext())
                 .load(gift.giftImageUrl)
@@ -110,7 +107,9 @@ public class GiftCardView extends FrameLayout {
         slideIn.setInterpolator(new OvershootInterpolator(0.6f));
         ObjectAnimator fadeIn = ObjectAnimator.ofFloat(this, "alpha", 0f, 1f);
         fadeIn.setDuration(200);
-        new AnimatorSet() {{ playTogether(slideIn, fadeIn); start(); }};
+        AnimatorSet setIn = new AnimatorSet();
+        setIn.playTogether(slideIn, fadeIn);
+        setIn.start();
     }
 
     private void animateOut(Runnable onDone) {
@@ -119,14 +118,15 @@ public class GiftCardView extends FrameLayout {
         slideOut.setInterpolator(new DecelerateInterpolator());
         ObjectAnimator fadeOut = ObjectAnimator.ofFloat(this, "alpha", 1f, 0f);
         fadeOut.setDuration(ANIM_OUT_MS);
-        AnimatorSet set = new AnimatorSet();
-        set.playTogether(slideOut, fadeOut);
-        set.addListener(new AnimatorListenerAdapter() {
-            @Override public void onAnimationEnd(Animator animation) {
+        AnimatorSet setOut = new AnimatorSet();
+        setOut.playTogether(slideOut, fadeOut);
+        setOut.addListener(new AnimatorListenerAdapter() {
+            @Override
+            public void onAnimationEnd(Animator animation) {
                 if (onDone != null) onDone.run();
             }
         });
-        set.start();
+        setOut.start();
     }
 
     public void cancelAndHide() {
