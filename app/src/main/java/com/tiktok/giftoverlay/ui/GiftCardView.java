@@ -4,6 +4,8 @@ import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.animation.AnimatorSet;
 import android.animation.ObjectAnimator;
+import android.content.ClipData;
+import android.content.ClipboardManager;
 import android.content.Context;
 import android.view.LayoutInflater;
 import android.view.animation.DecelerateInterpolator;
@@ -11,6 +13,7 @@ import android.view.animation.OvershootInterpolator;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.engine.DiskCacheStrategy;
 import com.bumptech.glide.request.RequestOptions;
@@ -23,9 +26,10 @@ public class GiftCardView extends FrameLayout {
     private ImageView giftImage;
     private TextView nicknameText;
     private TextView actionText;
+    private String currentUsername = "";
 
-    private static final long DISPLAY_DURATION_MS = 4000;
-    private static final long ANIM_IN_MS = 400;
+    private static final long DISPLAY_DURATION_MS = 5000;
+    private static final long ANIM_IN_MS = 350;
     private static final long ANIM_OUT_MS = 300;
 
     private Runnable hideRunnable;
@@ -42,12 +46,26 @@ public class GiftCardView extends FrameLayout {
         giftImage    = findViewById(R.id.gift_image);
         nicknameText = findViewById(R.id.nickname_text);
         actionText   = findViewById(R.id.action_text);
+
+        // При нажатии — копируем username в буфер
+        setOnClickListener(v -> {
+            if (!currentUsername.isEmpty()) {
+                ClipboardManager clipboard = (ClipboardManager)
+                    context.getSystemService(Context.CLIPBOARD_SERVICE);
+                ClipData clip = ClipData.newPlainText("username", "@" + currentUsername);
+                clipboard.setPrimaryClip(clip);
+                Toast.makeText(context, "@" + currentUsername + " copied!", Toast.LENGTH_SHORT).show();
+            }
+        });
+
         setTranslationX(-2000f);
         setAlpha(0f);
     }
 
     public void show(GiftEvent gift, Runnable onHidden) {
+        currentUsername = gift.username != null ? gift.username : "";
         nicknameText.setText(gift.nickname);
+        actionText.setText("sent " + gift.giftName);
 
         // Аватарка
         if (gift.avatarUrl != null && !gift.avatarUrl.isEmpty()) {
@@ -63,20 +81,20 @@ public class GiftCardView extends FrameLayout {
             avatarImage.setImageResource(R.drawable.ic_avatar_placeholder);
         }
 
-        // Загружаем картинку подарка через прокси-сервер
-if (gift.giftImageUrl != null && !gift.giftImageUrl.isEmpty()) {
-    Glide.with(getContext())
-        .load(gift.giftImageUrl)
-        .apply(new RequestOptions()
-            .diskCacheStrategy(DiskCacheStrategy.ALL)
-            .placeholder(R.drawable.ic_gift_placeholder)
-            .error(R.drawable.ic_gift_placeholder)
-            .override(120, 120)
-            .fitCenter())
-        .into(giftImage);
-} else {
-    giftImage.setImageResource(R.drawable.ic_gift_placeholder);
-}
+        // Картинка подарка через прокси
+        if (gift.giftImageUrl != null && !gift.giftImageUrl.isEmpty()) {
+            Glide.with(getContext())
+                .load(gift.giftImageUrl)
+                .apply(new RequestOptions()
+                    .diskCacheStrategy(DiskCacheStrategy.ALL)
+                    .placeholder(R.drawable.ic_gift_placeholder)
+                    .error(R.drawable.ic_gift_placeholder)
+                    .override(100, 100)
+                    .fitCenter())
+                .into(giftImage);
+        } else {
+            giftImage.setImageResource(R.drawable.ic_gift_placeholder);
+        }
 
         animateIn();
 
@@ -87,18 +105,16 @@ if (gift.giftImageUrl != null && !gift.giftImageUrl.isEmpty()) {
 
     private void animateIn() {
         setAlpha(1f);
-        ObjectAnimator slideIn = ObjectAnimator.ofFloat(this, "translationX", -800f, 0f);
+        ObjectAnimator slideIn = ObjectAnimator.ofFloat(this, "translationX", -600f, 0f);
         slideIn.setDuration(ANIM_IN_MS);
-        slideIn.setInterpolator(new OvershootInterpolator(0.8f));
+        slideIn.setInterpolator(new OvershootInterpolator(0.6f));
         ObjectAnimator fadeIn = ObjectAnimator.ofFloat(this, "alpha", 0f, 1f);
         fadeIn.setDuration(200);
-        AnimatorSet set = new AnimatorSet();
-        set.playTogether(slideIn, fadeIn);
-        set.start();
+        new AnimatorSet() {{ playTogether(slideIn, fadeIn); start(); }};
     }
 
     private void animateOut(Runnable onDone) {
-        ObjectAnimator slideOut = ObjectAnimator.ofFloat(this, "translationX", 0f, -900f);
+        ObjectAnimator slideOut = ObjectAnimator.ofFloat(this, "translationX", 0f, -700f);
         slideOut.setDuration(ANIM_OUT_MS);
         slideOut.setInterpolator(new DecelerateInterpolator());
         ObjectAnimator fadeOut = ObjectAnimator.ofFloat(this, "alpha", 1f, 0f);
@@ -106,8 +122,7 @@ if (gift.giftImageUrl != null && !gift.giftImageUrl.isEmpty()) {
         AnimatorSet set = new AnimatorSet();
         set.playTogether(slideOut, fadeOut);
         set.addListener(new AnimatorListenerAdapter() {
-            @Override
-            public void onAnimationEnd(Animator animation) {
+            @Override public void onAnimationEnd(Animator animation) {
                 if (onDone != null) onDone.run();
             }
         });
