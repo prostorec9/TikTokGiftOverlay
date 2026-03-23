@@ -63,12 +63,9 @@ public class GiftOverlayManager {
 
         card.show(gift, () -> {
             mainHandler.post(() -> {
-                try {
-                    windowManager.removeView(card);
-                } catch (Exception ignored) {}
+                try { windowManager.removeView(card); } catch (Exception ignored) {}
                 activeCards[slot] = null;
                 slotOccupied[slot] = false;
-
                 if (!pendingQueue.isEmpty()) {
                     GiftEvent next = pendingQueue.poll();
                     if (next != null) displayGiftInSlot(next, slot);
@@ -80,17 +77,15 @@ public class GiftOverlayManager {
     private WindowManager.LayoutParams createLayoutParams(int slot) {
         float density = context.getResources().getDisplayMetrics().density;
 
-        int cardWidth  = (int)(280 * density);
-        int cardHeight = (int)(68  * density);
-        int spacing    = (int)(8   * density);
+        int cardWidth  = (int)(160 * density);
+        int cardHeight = (int)(36  * density);
+        int spacing    = (int)(6   * density);
 
-        // Высота экрана
         DisplayMetrics dm = context.getResources().getDisplayMetrics();
         int screenHeight = dm.heightPixels;
 
-        // Размещаем СНИЗУ — как в TikTok LIVE
-        // Слот 0 = нижний, слот 1 = выше, слот 2 = ещё выше
-        int marginBottom = (int)(130 * density);
+        // Снизу экрана как в TikTok
+        int marginBottom = (int)(120 * density);
         int yOffset = screenHeight - marginBottom - ((slot + 1) * (cardHeight + spacing));
 
         WindowManager.LayoutParams params = new WindowManager.LayoutParams(
