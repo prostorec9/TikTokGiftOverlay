@@ -2,8 +2,8 @@
 <FrameLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:layout_width="280dp"
-    android:layout_height="68dp"
+    android:layout_width="160dp"
+    android:layout_height="36dp"
     android:background="@drawable/bg_gift_card"
     android:clickable="true"
     android:focusable="true">
@@ -13,25 +13,23 @@
         android:layout_height="match_parent"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:paddingEnd="10dp">
+        android:paddingEnd="6dp">
 
-        <!-- Аватарка круглая слева -->
         <de.hdodenhof.circleimageview.CircleImageView
             android:id="@+id/avatar_image"
-            android:layout_width="68dp"
-            android:layout_height="68dp"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
             android:src="@drawable/ic_avatar_placeholder"
-            app:civ_border_width="2dp"
+            app:civ_border_width="1dp"
             app:civ_border_color="#FFFFFF"/>
 
-        <!-- Ник + "sent Gift" -->
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:orientation="vertical"
-            android:layout_marginStart="10dp"
-            android:layout_marginEnd="6dp">
+            android:layout_marginStart="5dp"
+            android:layout_marginEnd="3dp">
 
             <TextView
                 android:id="@+id/nickname_text"
@@ -39,7 +37,7 @@
                 android:layout_height="wrap_content"
                 android:text="username"
                 android:textColor="#FFFFFF"
-                android:textSize="14sp"
+                android:textSize="9sp"
                 android:textStyle="bold"
                 android:maxLines="1"
                 android:ellipsize="end"/>
@@ -48,20 +46,18 @@
                 android:id="@+id/action_text"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
                 android:text="sent Rose"
                 android:textColor="#CCCCCC"
-                android:textSize="11sp"
+                android:textSize="8sp"
                 android:maxLines="1"
                 android:ellipsize="end"/>
 
         </LinearLayout>
 
-        <!-- Картинка подарка справа -->
         <ImageView
             android:id="@+id/gift_image"
-            android:layout_width="52dp"
-            android:layout_height="52dp"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
             android:src="@drawable/ic_gift_placeholder"
             android:scaleType="fitCenter"/>
 
