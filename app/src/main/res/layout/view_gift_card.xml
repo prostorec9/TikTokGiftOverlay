@@ -2,58 +2,69 @@
 <FrameLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:layout_width="380dp"
-    android:layout_height="90dp">
+    android:layout_width="280dp"
+    android:layout_height="68dp"
+    android:background="@drawable/bg_gift_card"
+    android:clickable="true"
+    android:focusable="true">
 
-    <!-- Тёмная таблетка-фон -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="@drawable/bg_gift_card"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:paddingStart="0dp"
-        android:paddingEnd="12dp">
+        android:paddingEnd="10dp">
 
-        <!-- Аватарка — большая, вписана в таблетку слева -->
+        <!-- Аватарка круглая слева -->
         <de.hdodenhof.circleimageview.CircleImageView
             android:id="@+id/avatar_image"
-            android:layout_width="90dp"
-            android:layout_height="90dp"
+            android:layout_width="68dp"
+            android:layout_height="68dp"
             android:src="@drawable/ic_avatar_placeholder"
-            app:civ_border_width="0dp" />
+            app:civ_border_width="2dp"
+            app:civ_border_color="#FFFFFF"/>
 
-        <!-- Имя пользователя по центру -->
-        <TextView
-            android:id="@+id/nickname_text"
+        <!-- Ник + "sent Gift" -->
+        <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:layout_marginStart="14dp"
-            android:text="username"
-            android:textColor="#FFFFFF"
-            android:textSize="17sp"
-            android:textStyle="bold"
-            android:maxLines="1"
-            android:ellipsize="end"
-            android:fontFamily="sans-serif-medium" />
+            android:orientation="vertical"
+            android:layout_marginStart="10dp"
+            android:layout_marginEnd="6dp">
 
-        <!-- Иконка подарка справа — большая -->
+            <TextView
+                android:id="@+id/nickname_text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="username"
+                android:textColor="#FFFFFF"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:maxLines="1"
+                android:ellipsize="end"/>
+
+            <TextView
+                android:id="@+id/action_text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="sent Rose"
+                android:textColor="#CCCCCC"
+                android:textSize="11sp"
+                android:maxLines="1"
+                android:ellipsize="end"/>
+
+        </LinearLayout>
+
+        <!-- Картинка подарка справа -->
         <ImageView
             android:id="@+id/gift_image"
-            android:layout_width="68dp"
-            android:layout_height="68dp"
+            android:layout_width="52dp"
+            android:layout_height="52dp"
             android:src="@drawable/ic_gift_placeholder"
-            android:scaleType="fitCenter"
-            android:layout_marginStart="8dp" />
+            android:scaleType="fitCenter"/>
 
     </LinearLayout>
-
-    <!-- Скрытый TextView для совместимости с кодом -->
-    <TextView
-        android:id="@+id/action_text"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:visibility="gone" />
 
 </FrameLayout>
