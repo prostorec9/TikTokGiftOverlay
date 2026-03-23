@@ -86,7 +86,7 @@ public class GiftCardView extends FrameLayout {
                     .diskCacheStrategy(DiskCacheStrategy.ALL)
                     .placeholder(R.drawable.ic_gift_placeholder)
                     .error(R.drawable.ic_gift_placeholder)
-                    .override(100, 100)
+                    .override(50, 50)
                     .fitCenter())
                 .into(giftImage);
         } else {
