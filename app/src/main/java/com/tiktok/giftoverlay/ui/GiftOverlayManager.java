@@ -14,14 +14,12 @@ import java.util.Queue;
 public class GiftOverlayManager {
 
     private static final int MAX_VISIBLE = 6;
-    // 2 пикселя между окнами
     private static final int GAP_PX = 2;
 
     private Context context;
     private WindowManager windowManager;
     private Handler mainHandler = new Handler(Looper.getMainLooper());
 
-    // Используем массив с явным отслеживанием — без дублей
     private final GiftCardView[] activeCards = new GiftCardView[MAX_VISIBLE];
     private final boolean[] slotOccupied = new boolean[MAX_VISIBLE];
     private final Queue<GiftEvent> pendingQueue = new LinkedList<>();
@@ -29,7 +27,6 @@ public class GiftOverlayManager {
     public GiftOverlayManager(Context context, WindowManager windowManager) {
         this.context = context;
         this.windowManager = windowManager;
-        // Инициализируем массивы
         for (int i = 0; i < MAX_VISIBLE; i++) {
             activeCards[i] = null;
             slotOccupied[i] = false;
@@ -42,10 +39,7 @@ public class GiftOverlayManager {
             if (freeSlot >= 0) {
                 displayGiftInSlot(gift, freeSlot);
             } else {
-                // Очередь максимум 20 подарков
-                if (pendingQueue.size() < 20) {
-                    pendingQueue.offer(gift);
-                }
+                if (pendingQueue.size() < 20) pendingQueue.offer(gift);
             }
         });
     }
@@ -58,7 +52,6 @@ public class GiftOverlayManager {
     }
 
     private void displayGiftInSlot(GiftEvent gift, final int slot) {
-        // Двойная проверка — слот точно свободен
         if (slotOccupied[slot]) return;
         if (activeCards[slot] != null) return;
 
@@ -72,22 +65,16 @@ public class GiftOverlayManager {
         try {
             windowManager.addView(card, params);
         } catch (Exception e) {
-            // Откатываем если не удалось добавить
             slotOccupied[slot] = false;
             activeCards[slot] = null;
             return;
         }
 
         card.show(gift, () -> mainHandler.post(() -> {
-            // Удаляем только если это именно наша карточка
             if (activeCards[slot] == card) {
-                try {
-                    windowManager.removeView(card);
-                } catch (Exception ignored) {}
+                try { windowManager.removeView(card); } catch (Exception ignored) {}
                 activeCards[slot] = null;
                 slotOccupied[slot] = false;
-
-                // Показываем следующий из очереди
                 if (!pendingQueue.isEmpty()) {
                     GiftEvent next = pendingQueue.poll();
                     if (next != null) displayGiftInSlot(next, slot);
@@ -103,7 +90,6 @@ public class GiftOverlayManager {
         int cardHeight = (int)(54  * density);
         int gapPx      = (int)(GAP_PX * density);
 
-        // Сверху вниз, 2px между карточками
         int marginTop = (int)(8 * density);
         int yOffset   = marginTop + slot * (cardHeight + gapPx);
 
@@ -113,9 +99,10 @@ public class GiftOverlayManager {
                 android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O
                         ? WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
                         : WindowManager.LayoutParams.TYPE_PHONE,
-                // FLAG_NOT_TOUCH_MODAL — каждое окно получает тач только в своих границах
-                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
-                        | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL
+                // УБИРАЕМ FLAG_NOT_FOCUSABLE — он блокирует touch на Android 13!
+                // Только NOT_TOUCH_MODAL чтобы тач проходил в другие приложения за пределами окна
+                WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL
+                        | WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH
                         | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
                 PixelFormat.TRANSLUCENT
         );
