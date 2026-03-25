@@ -16,6 +16,8 @@ import android.widget.TextView;
 import android.widget.Toast;
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.engine.DiskCacheStrategy;
+import com.bumptech.glide.load.model.GlideUrl;
+import com.bumptech.glide.load.model.LazyHeaders;
 import com.bumptech.glide.request.RequestOptions;
 import com.tiktok.giftoverlay.R;
 import com.tiktok.giftoverlay.model.GiftEvent;
@@ -47,6 +49,7 @@ public class GiftCardView extends FrameLayout {
         nicknameText = findViewById(R.id.nickname_text);
         actionText   = findViewById(R.id.action_text);
 
+        // При нажатии — копируем @username в буфер обмена
         setOnClickListener(v -> {
             if (!currentUsername.isEmpty()) {
                 ClipboardManager clipboard = (ClipboardManager)
@@ -66,38 +69,45 @@ public class GiftCardView extends FrameLayout {
         nicknameText.setText(gift.nickname);
         actionText.setText("sent " + gift.giftName);
 
-        if (gift.avatarUrl != null && !gift.avatarUrl.isEmpty()) {
-            Glide.with(getContext())
-                .load(gift.avatarUrl)
-                .apply(new RequestOptions()
-                    .diskCacheStrategy(DiskCacheStrategy.ALL)
-                    .circleCrop()
-                    .placeholder(R.drawable.ic_avatar_placeholder)
-                    .error(R.drawable.ic_avatar_placeholder))
-                .into(avatarImage);
-        } else {
-            avatarImage.setImageResource(R.drawable.ic_avatar_placeholder);
-        }
+        // Загружаем аватарку через прокси-сервер
+        loadImage(gift.avatarUrl, avatarImage, true);
 
-        if (gift.giftImageUrl != null && !gift.giftImageUrl.isEmpty()) {
-            Glide.with(getContext())
-                .load(gift.giftImageUrl)
-                .apply(new RequestOptions()
-                    .diskCacheStrategy(DiskCacheStrategy.ALL)
-                    .placeholder(R.drawable.ic_gift_placeholder)
-                    .error(R.drawable.ic_gift_placeholder)
-                    .override(50, 50)
-                    .fitCenter())
-                .into(giftImage);
-        } else {
-            giftImage.setImageResource(R.drawable.ic_gift_placeholder);
-        }
+        // Загружаем картинку подарка через прокси-сервер
+        loadImage(gift.giftImageUrl, giftImage, false);
 
         animateIn();
 
         if (hideRunnable != null) handler.removeCallbacks(hideRunnable);
         hideRunnable = () -> animateOut(onHidden);
         handler.postDelayed(hideRunnable, DISPLAY_DURATION_MS);
+    }
+
+    private void loadImage(String url, ImageView imageView, boolean isAvatar) {
+        if (url == null || url.isEmpty()) {
+            imageView.setImageResource(isAvatar
+                ? R.drawable.ic_avatar_placeholder
+                : R.drawable.ic_gift_placeholder);
+            return;
+        }
+
+        // Добавляем заголовки чтобы обойти блокировки
+        GlideUrl glideUrl = new GlideUrl(url, new LazyHeaders.Builder()
+            .addHeader("Referer", "https://www.tiktok.com/")
+            .addHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
+            .build());
+
+        RequestOptions opts = new RequestOptions()
+            .diskCacheStrategy(DiskCacheStrategy.ALL)
+            .placeholder(isAvatar ? R.drawable.ic_avatar_placeholder : R.drawable.ic_gift_placeholder)
+            .error(isAvatar ? R.drawable.ic_avatar_placeholder : R.drawable.ic_gift_placeholder);
+
+        if (isAvatar) opts = opts.circleCrop();
+        else opts = opts.fitCenter().override(80, 80);
+
+        Glide.with(getContext())
+            .load(glideUrl)
+            .apply(opts)
+            .into(imageView);
     }
 
     private void animateIn() {
