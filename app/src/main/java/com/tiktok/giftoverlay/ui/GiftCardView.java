@@ -8,6 +8,7 @@ import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.animation.DecelerateInterpolator;
 import android.view.animation.OvershootInterpolator;
 import android.widget.FrameLayout;
@@ -49,15 +50,18 @@ public class GiftCardView extends FrameLayout {
         nicknameText = findViewById(R.id.nickname_text);
         actionText   = findViewById(R.id.action_text);
 
-        // При нажатии — копируем @username в буфер обмена
-        setOnClickListener(v -> {
-            if (!currentUsername.isEmpty()) {
-                ClipboardManager clipboard = (ClipboardManager)
-                    context.getSystemService(Context.CLIPBOARD_SERVICE);
-                ClipData clip = ClipData.newPlainText("username", "@" + currentUsername);
-                clipboard.setPrimaryClip(clip);
-                Toast.makeText(context, "@" + currentUsername + " copied!", Toast.LENGTH_SHORT).show();
+        // Используем onTouchListener — работает в overlay окнах
+        setOnTouchListener((v, event) -> {
+            if (event.getAction() == MotionEvent.ACTION_UP) {
+                if (!currentUsername.isEmpty()) {
+                    ClipboardManager clipboard = (ClipboardManager)
+                        context.getSystemService(Context.CLIPBOARD_SERVICE);
+                    ClipData clip = ClipData.newPlainText("username", "@" + currentUsername);
+                    clipboard.setPrimaryClip(clip);
+                    Toast.makeText(context, "@" + currentUsername + " copied!", Toast.LENGTH_SHORT).show();
+                }
             }
+            return true;
         });
 
         setTranslationX(-2000f);
