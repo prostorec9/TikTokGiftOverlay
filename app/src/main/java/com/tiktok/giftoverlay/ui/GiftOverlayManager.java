@@ -80,15 +80,9 @@ public class GiftOverlayManager {
         int cardWidth  = (int)(240 * density);
         int cardHeight = (int)(54  * density);
 
-        // Высота экрана
-        DisplayMetrics dm = context.getResources().getDisplayMetrics();
-        int screenHeight = dm.heightPixels;
-
-        // Равномерно распределяем 6 слотов по всей высоте экрана
-        // от верха до низа
-        int totalSpacing = screenHeight - (MAX_VISIBLE * cardHeight);
-        int spacing = totalSpacing / (MAX_VISIBLE + 1);
-        int yOffset = spacing + slot * (cardHeight + spacing);
+        // Карточки сверху вниз без отступов
+        int marginTop = (int)(8 * density);
+        int yOffset = marginTop + slot * cardHeight;
 
         WindowManager.LayoutParams params = new WindowManager.LayoutParams(
                 cardWidth,
@@ -96,7 +90,6 @@ public class GiftOverlayManager {
                 android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O
                         ? WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
                         : WindowManager.LayoutParams.TYPE_PHONE,
-                // Убираем FLAG_NOT_TOUCH_MODAL чтобы работал клик!
                 WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
                         | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
                 PixelFormat.TRANSLUCENT
