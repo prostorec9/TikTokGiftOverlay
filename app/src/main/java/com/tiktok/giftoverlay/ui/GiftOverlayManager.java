@@ -14,18 +14,26 @@ import java.util.Queue;
 public class GiftOverlayManager {
 
     private static final int MAX_VISIBLE = 6;
+    // 2 пикселя между окнами
+    private static final int GAP_PX = 2;
 
     private Context context;
     private WindowManager windowManager;
     private Handler mainHandler = new Handler(Looper.getMainLooper());
 
-    private GiftCardView[] activeCards = new GiftCardView[MAX_VISIBLE];
-    private boolean[] slotOccupied = new boolean[MAX_VISIBLE];
-    private Queue<GiftEvent> pendingQueue = new LinkedList<>();
+    // Используем массив с явным отслеживанием — без дублей
+    private final GiftCardView[] activeCards = new GiftCardView[MAX_VISIBLE];
+    private final boolean[] slotOccupied = new boolean[MAX_VISIBLE];
+    private final Queue<GiftEvent> pendingQueue = new LinkedList<>();
 
     public GiftOverlayManager(Context context, WindowManager windowManager) {
         this.context = context;
         this.windowManager = windowManager;
+        // Инициализируем массивы
+        for (int i = 0; i < MAX_VISIBLE; i++) {
+            activeCards[i] = null;
+            slotOccupied[i] = false;
+        }
     }
 
     public void showGift(GiftEvent gift) {
@@ -34,7 +42,10 @@ public class GiftOverlayManager {
             if (freeSlot >= 0) {
                 displayGiftInSlot(gift, freeSlot);
             } else {
-                pendingQueue.offer(gift);
+                // Очередь максимум 20 подарков
+                if (pendingQueue.size() < 20) {
+                    pendingQueue.offer(gift);
+                }
             }
         });
     }
@@ -46,7 +57,11 @@ public class GiftOverlayManager {
         return -1;
     }
 
-    private void displayGiftInSlot(GiftEvent gift, int slot) {
+    private void displayGiftInSlot(GiftEvent gift, final int slot) {
+        // Двойная проверка — слот точно свободен
+        if (slotOccupied[slot]) return;
+        if (activeCards[slot] != null) return;
+
         slotOccupied[slot] = true;
 
         GiftCardView card = new GiftCardView(context);
@@ -57,21 +72,28 @@ public class GiftOverlayManager {
         try {
             windowManager.addView(card, params);
         } catch (Exception e) {
+            // Откатываем если не удалось добавить
             slotOccupied[slot] = false;
+            activeCards[slot] = null;
             return;
         }
 
-        card.show(gift, () -> {
-            mainHandler.post(() -> {
-                try { windowManager.removeView(card); } catch (Exception ignored) {}
+        card.show(gift, () -> mainHandler.post(() -> {
+            // Удаляем только если это именно наша карточка
+            if (activeCards[slot] == card) {
+                try {
+                    windowManager.removeView(card);
+                } catch (Exception ignored) {}
                 activeCards[slot] = null;
                 slotOccupied[slot] = false;
+
+                // Показываем следующий из очереди
                 if (!pendingQueue.isEmpty()) {
                     GiftEvent next = pendingQueue.poll();
                     if (next != null) displayGiftInSlot(next, slot);
                 }
-            });
-        });
+            }
+        }));
     }
 
     private WindowManager.LayoutParams createLayoutParams(int slot) {
@@ -79,10 +101,11 @@ public class GiftOverlayManager {
 
         int cardWidth  = (int)(240 * density);
         int cardHeight = (int)(54  * density);
+        int gapPx      = (int)(GAP_PX * density);
 
-        // Карточки сверху вниз без отступов
+        // Сверху вниз, 2px между карточками
         int marginTop = (int)(8 * density);
-        int yOffset = marginTop + slot * cardHeight;
+        int yOffset   = marginTop + slot * (cardHeight + gapPx);
 
         WindowManager.LayoutParams params = new WindowManager.LayoutParams(
                 cardWidth,
@@ -90,7 +113,9 @@ public class GiftOverlayManager {
                 android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O
                         ? WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
                         : WindowManager.LayoutParams.TYPE_PHONE,
+                // FLAG_NOT_TOUCH_MODAL — каждое окно получает тач только в своих границах
                 WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
+                        | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL
                         | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
                 PixelFormat.TRANSLUCENT
         );
