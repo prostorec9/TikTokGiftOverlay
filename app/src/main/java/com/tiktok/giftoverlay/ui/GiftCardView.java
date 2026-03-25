@@ -69,10 +69,7 @@ public class GiftCardView extends FrameLayout {
         nicknameText.setText(gift.nickname);
         actionText.setText("sent " + gift.giftName);
 
-        // Загружаем аватарку через прокси-сервер
         loadImage(gift.avatarUrl, avatarImage, true);
-
-        // Загружаем картинку подарка через прокси-сервер
         loadImage(gift.giftImageUrl, giftImage, false);
 
         animateIn();
@@ -90,7 +87,6 @@ public class GiftCardView extends FrameLayout {
             return;
         }
 
-        // Добавляем заголовки чтобы обойти блокировки
         GlideUrl glideUrl = new GlideUrl(url, new LazyHeaders.Builder()
             .addHeader("Referer", "https://www.tiktok.com/")
             .addHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
@@ -104,10 +100,7 @@ public class GiftCardView extends FrameLayout {
         if (isAvatar) opts = opts.circleCrop();
         else opts = opts.fitCenter().override(80, 80);
 
-        Glide.with(getContext())
-            .load(glideUrl)
-            .apply(opts)
-            .into(imageView);
+        Glide.with(getContext()).load(glideUrl).apply(opts).into(imageView);
     }
 
     private void animateIn() {
