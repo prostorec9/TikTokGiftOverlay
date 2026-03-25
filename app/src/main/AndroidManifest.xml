@@ -29,12 +29,6 @@
             </intent-filter>
         </activity>
 
-        <activity
-            android:name=".ui.CopyActivity"
-            android:theme="@android:style/Theme.Translucent.NoTitleBar"
-            android:excludeFromRecents="true"
-            android:taskAffinity="" />
-
         <service
             android:name=".service.GiftOverlayService"
             android:exported="false"
