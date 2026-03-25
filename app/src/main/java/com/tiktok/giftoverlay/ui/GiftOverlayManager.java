@@ -13,7 +13,7 @@ import java.util.Queue;
 
 public class GiftOverlayManager {
 
-    private static final int MAX_VISIBLE = 3;
+    private static final int MAX_VISIBLE = 6;
 
     private Context context;
     private WindowManager windowManager;
@@ -77,16 +77,14 @@ public class GiftOverlayManager {
     private WindowManager.LayoutParams createLayoutParams(int slot) {
         float density = context.getResources().getDisplayMetrics().density;
 
-        int cardWidth  = (int)(160 * density);
-        int cardHeight = (int)(36  * density);
+        // Размер +50% от 160x36 = 240x54
+        int cardWidth  = (int)(240 * density);
+        int cardHeight = (int)(54  * density);
         int spacing    = (int)(6   * density);
 
-        DisplayMetrics dm = context.getResources().getDisplayMetrics();
-        int screenHeight = dm.heightPixels;
-
-        // Снизу экрана как в TikTok
-        int marginBottom = (int)(120 * density);
-        int yOffset = screenHeight - marginBottom - ((slot + 1) * (cardHeight + spacing));
+        // Сверху экрана
+        int marginTop = (int)(24 * density);
+        int yOffset = marginTop + slot * (cardHeight + spacing);
 
         WindowManager.LayoutParams params = new WindowManager.LayoutParams(
                 cardWidth,
