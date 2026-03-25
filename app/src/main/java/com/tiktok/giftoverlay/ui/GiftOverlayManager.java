@@ -1,8 +1,9 @@
 package com.tiktok.giftoverlay.ui;
 
 import android.animation.LayoutTransition;
+import android.content.ClipData;
+import android.content.ClipboardManager;
 import android.content.Context;
-import android.content.Intent;
 import android.graphics.PixelFormat;
 import android.os.Handler;
 import android.os.Looper;
@@ -12,6 +13,7 @@ import android.view.Gravity;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.LinearLayout;
+import android.widget.Toast;
 
 import com.tiktok.giftoverlay.model.GiftEvent;
 
@@ -26,6 +28,7 @@ public class GiftOverlayManager {
 
     private final Context context;
     private final WindowManager windowManager;
+    private final ClipboardManager clipboardManager;
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
     private LinearLayout containerLayout;
@@ -36,6 +39,7 @@ public class GiftOverlayManager {
     public GiftOverlayManager(Context context, WindowManager windowManager) {
         this.context = context;
         this.windowManager = windowManager;
+        this.clipboardManager = (ClipboardManager) context.getSystemService(Context.CLIPBOARD_SERVICE);
 
         this.cardWidthPx = dpToPx(CARD_WIDTH_DP);
         this.cardHeightPx = dpToPx(CARD_HEIGHT_DP);
@@ -76,14 +80,11 @@ public class GiftOverlayManager {
         LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(cardWidthPx, cardHeightPx);
         layoutParams.bottomMargin = gapPx;
 
+        // При клике используем новый метод перехвата фокуса
         card.setOnClickListener(v -> {
             String username = gift.username;
             if (username != null && !username.isEmpty()) {
-                Intent intent = new Intent(context, CopyActivity.class);
-                intent.putExtra("text_to_copy", username);
-                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                intent.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION);
-                context.startActivity(intent);
+                copyTextWithFocusHack(username);
             }
         });
 
@@ -94,6 +95,35 @@ public class GiftOverlayManager {
                 containerLayout.removeView(card);
             }
         }));
+    }
+
+    // НОВЫЙ МЕТОД: Копирование с временным получением фокуса для Android 12+
+    private void copyTextWithFocusHack(String text) {
+        if (containerLayout == null) return;
+
+        WindowManager.LayoutParams params = (WindowManager.LayoutParams) containerLayout.getLayoutParams();
+        
+        // 1. Временно снимаем запрет на фокус, чтобы оверлей стал активным окном
+        params.flags &= ~WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE;
+        windowManager.updateViewLayout(containerLayout, params);
+        containerLayout.requestFocus();
+
+        // 2. Ждем 100 мс, пока система обработает смену фокуса, и копируем текст
+        containerLayout.postDelayed(() -> {
+            try {
+                ClipData clip = ClipData.newPlainText("TikTok Username", text);
+                clipboardManager.setPrimaryClip(clip);
+                Toast.makeText(context, "Скопировано: " + text, Toast.LENGTH_SHORT).show();
+            } catch (Exception e) {
+                Log.e(TAG, "Ошибка копирования", e);
+            } finally {
+                // 3. Обязательно возвращаем флаг обратно, чтобы TikTok продолжал реагировать на нажатия под оверлеем
+                params.flags |= WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE;
+                try {
+                    windowManager.updateViewLayout(containerLayout, params);
+                } catch (Exception ignored) {}
+            }
+        }, 100);
     }
 
     public void hideAll() {
