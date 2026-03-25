@@ -32,14 +32,13 @@ public class GiftCardView extends FrameLayout {
     private TextView nicknameText;
     private TextView actionText;
     private String currentUsername = "";
-    private boolean isTouching = false;
 
     private static final long DISPLAY_DURATION_MS = 5000;
     private static final long ANIM_IN_MS = 350;
     private static final long ANIM_OUT_MS = 300;
 
     private Runnable hideRunnable;
-    private Handler handler = new Handler(Looper.getMainLooper());
+    private final Handler handler = new Handler(Looper.getMainLooper());
 
     public GiftCardView(Context context) {
         super(context);
@@ -56,43 +55,43 @@ public class GiftCardView extends FrameLayout {
         setOnTouchListener((v, event) -> {
             switch (event.getAction()) {
                 case MotionEvent.ACTION_DOWN:
-                    // Визуальный фидбек при нажатии
-                    setAlpha(0.7f);
-                    break;
+                    setAlpha(0.6f);
+                    return true;
 
                 case MotionEvent.ACTION_UP:
                     setAlpha(1.0f);
-                    // Копируем username в буфер обмена
                     if (!currentUsername.isEmpty()) {
-                        try {
-                            ClipboardManager clipboard = (ClipboardManager)
-                                context.getApplicationContext()
-                                    .getSystemService(Context.CLIPBOARD_SERVICE);
-                            if (clipboard != null) {
-                                ClipData clip = ClipData.newPlainText(
-                                    "tiktok_username", "@" + currentUsername);
-                                clipboard.setPrimaryClip(clip);
-                            }
-                        } catch (Exception e) {
-                            // ignore
-                        }
-                        // Мигание фоном как фидбек (Toast не работает из Service)
-                        setBackgroundColor(Color.parseColor("#44FFFFFF"));
-                        handler.postDelayed(() ->
-                            setBackground(getContext().getResources()
-                                .getDrawable(R.drawable.bg_gift_card, null)), 300);
+                        copyToClipboard(context, currentUsername);
+                        // Мигание белым — визуальный фидбек
+                        setBackgroundColor(Color.parseColor("#66FFFFFF"));
+                        handler.postDelayed(() -> {
+                            try {
+                                setBackground(context.getResources()
+                                    .getDrawable(R.drawable.bg_gift_card, null));
+                            } catch (Exception ignored) {}
+                        }, 250);
                     }
-                    break;
+                    return true;
 
                 case MotionEvent.ACTION_CANCEL:
                     setAlpha(1.0f);
-                    break;
+                    return true;
             }
-            return true;
+            return false;
         });
 
         setTranslationX(-2000f);
         setAlpha(0f);
+    }
+
+    private void copyToClipboard(Context context, String username) {
+        try {
+            ClipboardManager cm = (ClipboardManager)
+                context.getApplicationContext().getSystemService(Context.CLIPBOARD_SERVICE);
+            if (cm != null) {
+                cm.setPrimaryClip(ClipData.newPlainText("username", "@" + username));
+            }
+        } catch (Exception ignored) {}
     }
 
     public void show(GiftEvent gift, Runnable onHidden) {
@@ -117,7 +116,6 @@ public class GiftCardView extends FrameLayout {
                 : R.drawable.ic_gift_placeholder);
             return;
         }
-
         GlideUrl glideUrl = new GlideUrl(url, new LazyHeaders.Builder()
             .addHeader("Referer", "https://www.tiktok.com/")
             .addHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
