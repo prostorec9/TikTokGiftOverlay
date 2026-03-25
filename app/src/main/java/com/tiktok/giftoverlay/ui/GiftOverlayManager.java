@@ -1,9 +1,8 @@
 package com.tiktok.giftoverlay.ui;
 
 import android.animation.LayoutTransition;
-import android.content.ClipData;
-import android.content.ClipboardManager;
 import android.content.Context;
+import android.content.Intent;
 import android.graphics.PixelFormat;
 import android.os.Handler;
 import android.os.Looper;
@@ -13,7 +12,6 @@ import android.view.Gravity;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.LinearLayout;
-import android.widget.Toast;
 
 import com.tiktok.giftoverlay.model.GiftEvent;
 
@@ -28,12 +26,9 @@ public class GiftOverlayManager {
 
     private final Context context;
     private final WindowManager windowManager;
-    private final ClipboardManager clipboardManager;
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
-    // Контейнер, который держит все карточки
     private LinearLayout containerLayout;
-    // Размеры в пикселях
     private final int cardWidthPx;
     private final int cardHeightPx;
     private final int gapPx;
@@ -41,9 +36,7 @@ public class GiftOverlayManager {
     public GiftOverlayManager(Context context, WindowManager windowManager) {
         this.context = context;
         this.windowManager = windowManager;
-        this.clipboardManager = (ClipboardManager) context.getSystemService(Context.CLIPBOARD_SERVICE);
 
-        // Предварительный расчет размеров
         this.cardWidthPx = dpToPx(CARD_WIDTH_DP);
         this.cardHeightPx = dpToPx(CARD_HEIGHT_DP);
         this.gapPx = dpToPx(GAP_DP);
@@ -55,7 +48,6 @@ public class GiftOverlayManager {
         mainHandler.post(() -> {
             containerLayout = new LinearLayout(context);
             containerLayout.setOrientation(LinearLayout.VERTICAL);
-            // Плавная анимация при добавлении/удалении
             containerLayout.setLayoutTransition(new LayoutTransition());
 
             WindowManager.LayoutParams params = createContainerLayoutParams();
@@ -71,7 +63,6 @@ public class GiftOverlayManager {
         mainHandler.post(() -> {
             if (containerLayout == null) return;
 
-            // Если лимит — удаляем самую старую
             if (containerLayout.getChildCount() >= MAX_VISIBLE) {
                 containerLayout.removeViewAt(0);
             }
@@ -85,19 +76,19 @@ public class GiftOverlayManager {
         LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(cardWidthPx, cardHeightPx);
         layoutParams.bottomMargin = gapPx;
 
-        // Копирование username (теперь берем публичную переменную .username напрямую)
         card.setOnClickListener(v -> {
-            String username = gift.username; 
+            String username = gift.username;
             if (username != null && !username.isEmpty()) {
-                ClipData clip = ClipData.newPlainText("TikTok Username", username);
-                clipboardManager.setPrimaryClip(clip);
-                Toast.makeText(context, "Username " + username + " скопирован", Toast.LENGTH_SHORT).show();
+                Intent intent = new Intent(context, CopyActivity.class);
+                intent.putExtra("text_to_copy", username);
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                intent.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION);
+                context.startActivity(intent);
             }
         });
 
         containerLayout.addView(card, layoutParams);
 
-        // Показ карточки и коллбек на самоудаление
         card.show(gift, () -> mainHandler.post(() -> {
             if (containerLayout != null) {
                 containerLayout.removeView(card);
