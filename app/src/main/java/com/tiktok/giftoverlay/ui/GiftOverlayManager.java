@@ -1,6 +1,6 @@
 package com.tiktok.giftoverlay.ui;
 
-import android.animation.LayoutTransition;
+import android.animation.ValueAnimator;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
@@ -10,12 +10,13 @@ import android.os.Looper;
 import android.util.Log;
 import android.util.TypedValue;
 import android.view.Gravity;
-import android.view.View;
 import android.view.WindowManager;
-import android.widget.LinearLayout;
 import android.widget.Toast;
 
 import com.tiktok.giftoverlay.model.GiftEvent;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class GiftOverlayManager {
 
@@ -31,7 +32,8 @@ public class GiftOverlayManager {
     private final ClipboardManager clipboardManager;
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
-    private LinearLayout containerLayout;
+    private final List<GiftCardView> activeCards = new ArrayList<>();
+
     private final int cardWidthPx;
     private final int cardHeightPx;
     private final int gapPx;
@@ -44,127 +46,151 @@ public class GiftOverlayManager {
         this.cardWidthPx = dpToPx(CARD_WIDTH_DP);
         this.cardHeightPx = dpToPx(CARD_HEIGHT_DP);
         this.gapPx = dpToPx(GAP_DP);
-
-        initContainer();
-    }
-
-    private void initContainer() {
-        mainHandler.post(() -> {
-            containerLayout = new LinearLayout(context);
-            containerLayout.setOrientation(LinearLayout.VERTICAL);
-            containerLayout.setLayoutTransition(new LayoutTransition());
-
-            WindowManager.LayoutParams params = createContainerLayoutParams();
-            try {
-                windowManager.addView(containerLayout, params);
-            } catch (Exception e) {
-                Log.e(TAG, "Failed to add main container to WindowManager", e);
-            }
-        });
     }
 
     public void showGift(GiftEvent gift) {
         mainHandler.post(() -> {
-            if (containerLayout == null) return;
-
-            if (containerLayout.getChildCount() >= MAX_VISIBLE) {
-                containerLayout.removeViewAt(0);
+            if (activeCards.size() >= MAX_VISIBLE) {
+                removeTopCard();
             }
             addNewCard(gift);
         });
     }
 
+    private void removeTopCard() {
+        if (activeCards.isEmpty()) return;
+        GiftCardView oldest = activeCards.remove(0);
+        try {
+            windowManager.removeView(oldest);
+        } catch (Exception ignored) {}
+        
+        repositionAllCards(); // Сдвигаем остальные карточки вверх
+    }
+
     private void addNewCard(GiftEvent gift) {
         GiftCardView card = new GiftCardView(context);
+        activeCards.add(card);
 
-        LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(cardWidthPx, cardHeightPx);
-        layoutParams.bottomMargin = gapPx;
+        int slot = activeCards.size() - 1;
+        WindowManager.LayoutParams params = createLayoutParams(slot);
 
-        // При клике используем новый метод перехвата фокуса
+        // Нажатие для копирования текста
         card.setOnClickListener(v -> {
             String username = gift.username;
             if (username != null && !username.isEmpty()) {
-                copyTextWithFocusHack(username);
+                copyText(card, params, username);
             }
         });
 
-        containerLayout.addView(card, layoutParams);
+        try {
+            windowManager.addView(card, params);
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to add card", e);
+            activeCards.remove(card);
+            return;
+        }
 
         card.show(gift, () -> mainHandler.post(() -> {
-            if (containerLayout != null) {
-                containerLayout.removeView(card);
+            int idx = activeCards.indexOf(card);
+            if (idx >= 0) {
+                activeCards.remove(idx);
+                try { windowManager.removeView(card); } catch (Exception ignored) {}
+                repositionAllCards(); // Сдвигаем карточки, если одна удалилась по таймеру
             }
         }));
     }
 
-    // НОВЫЙ МЕТОД: Копирование с временным получением фокуса для Android 12+
-    private void copyTextWithFocusHack(String text) {
-        if (containerLayout == null) return;
+    // НОВЫЙ МЕТОД: Плавная анимация окон (без мертвых зон на экране)
+    private void repositionAllCards() {
+        int marginTopPx = dpToPx(MARGIN_TOP_DP);
+        int totalCardHeight = cardHeightPx + gapPx;
 
-        WindowManager.LayoutParams params = (WindowManager.LayoutParams) containerLayout.getLayoutParams();
-        
-        // 1. Временно снимаем запрет на фокус, чтобы оверлей стал активным окном
+        for (int i = 0; i < activeCards.size(); i++) {
+            GiftCardView card = activeCards.get(i);
+            int targetY = marginTopPx + i * totalCardHeight;
+
+            WindowManager.LayoutParams params = (WindowManager.LayoutParams) card.getLayoutParams();
+            if (params == null) continue;
+
+            int startY = params.y;
+            if (startY == targetY) continue; // Уже на нужном месте
+
+            // Отменяем старую анимацию, если карточка уже ехала
+            ValueAnimator oldAnimator = (ValueAnimator) card.getTag();
+            if (oldAnimator != null) {
+                oldAnimator.cancel();
+            }
+
+            // Создаем новую плавную анимацию сдвига вверх
+            ValueAnimator animator = ValueAnimator.ofInt(startY, targetY);
+            animator.setDuration(250); // Скорость скольжения (250 мс)
+            animator.addUpdateListener(animation -> {
+                params.y = (int) animation.getAnimatedValue();
+                try {
+                    windowManager.updateViewLayout(card, params);
+                } catch (Exception ignored) {}
+            });
+            
+            card.setTag(animator);
+            animator.start();
+        }
+    }
+
+    private void copyText(GiftCardView card, WindowManager.LayoutParams params, String text) {
+        // Микро-перехват фокуса только для одной карточки
         params.flags &= ~WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE;
-        windowManager.updateViewLayout(containerLayout, params);
-        containerLayout.requestFocus();
-
-        // 2. Ждем 100 мс, пока система обработает смену фокуса, и копируем текст
-        containerLayout.postDelayed(() -> {
+        try { windowManager.updateViewLayout(card, params); } catch (Exception ignored) {}
+        
+        card.postDelayed(() -> {
             try {
                 ClipData clip = ClipData.newPlainText("TikTok Username", text);
                 clipboardManager.setPrimaryClip(clip);
                 Toast.makeText(context, "Скопировано: " + text, Toast.LENGTH_SHORT).show();
             } catch (Exception e) {
-                Log.e(TAG, "Ошибка копирования", e);
+                Log.e(TAG, "Ошибка буфера обмена", e);
             } finally {
-                // 3. Обязательно возвращаем флаг обратно, чтобы TikTok продолжал реагировать на нажатия под оверлеем
                 params.flags |= WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE;
-                try {
-                    windowManager.updateViewLayout(containerLayout, params);
-                } catch (Exception ignored) {}
+                try { windowManager.updateViewLayout(card, params); } catch (Exception ignored) {}
             }
         }, 100);
     }
 
-    public void hideAll() {
-        mainHandler.post(() -> {
-            if (containerLayout != null) {
-                for (int i = 0; i < containerLayout.getChildCount(); i++) {
-                    View v = containerLayout.getChildAt(i);
-                    if (v instanceof GiftCardView) {
-                        ((GiftCardView) v).cancelAndHide();
-                    }
-                }
-                try {
-                    windowManager.removeView(containerLayout);
-                } catch (Exception e) {
-                    Log.e(TAG, "Error removing container", e);
-                }
-                containerLayout = null;
-            }
-        });
-    }
-
-    private WindowManager.LayoutParams createContainerLayoutParams() {
+    private WindowManager.LayoutParams createLayoutParams(int slot) {
         int marginTopPx = dpToPx(MARGIN_TOP_DP);
-        int totalHeightPx = (cardHeightPx + gapPx) * MAX_VISIBLE + marginTopPx;
+        int yOffset = marginTopPx + slot * (cardHeightPx + gapPx);
 
         WindowManager.LayoutParams params = new WindowManager.LayoutParams(
                 cardWidthPx,
-                totalHeightPx,
+                cardHeightPx,
                 android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O
                         ? WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
                         : WindowManager.LayoutParams.TYPE_PHONE,
                 WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
                         | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL
+                        | WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH
                         | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
                 PixelFormat.TRANSLUCENT
         );
 
         params.gravity = Gravity.TOP | Gravity.START;
         params.x = 0;
-        params.y = marginTopPx;
+        params.y = yOffset;
+        // Устанавливаем анимацию исчезновения/появления по умолчанию
+        params.windowAnimations = android.R.style.Animation_Toast; 
+        
         return params;
+    }
+
+    public void hideAll() {
+        mainHandler.post(() -> {
+            for (GiftCardView card : activeCards) {
+                try {
+                    card.cancelAndHide();
+                    windowManager.removeView(card);
+                } catch (Exception ignored) {}
+            }
+            activeCards.clear();
+        });
     }
 
     private int dpToPx(int dp) {
