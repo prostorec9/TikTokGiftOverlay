@@ -17,9 +17,6 @@ import android.widget.Toast;
 
 import com.tiktok.giftoverlay.model.GiftEvent;
 
-import java.util.ArrayList;
-import java.util.List;
-
 public class GiftOverlayManager {
 
     private static final String TAG = "GiftOverlayManager";
@@ -36,7 +33,7 @@ public class GiftOverlayManager {
 
     // Контейнер, который держит все карточки
     private LinearLayout containerLayout;
-    // Размеры в пикселях (рассчитаны заранее)
+    // Размеры в пикселях
     private final int cardWidthPx;
     private final int cardHeightPx;
     private final int gapPx;
@@ -46,12 +43,11 @@ public class GiftOverlayManager {
         this.windowManager = windowManager;
         this.clipboardManager = (ClipboardManager) context.getSystemService(Context.CLIPBOARD_SERVICE);
 
-        // 1. Предварительный расчет размеров в пикселях
+        // Предварительный расчет размеров
         this.cardWidthPx = dpToPx(CARD_WIDTH_DP);
         this.cardHeightPx = dpToPx(CARD_HEIGHT_DP);
         this.gapPx = dpToPx(GAP_DP);
 
-        // 2. Инициализация главного контейнера оверлея
         initContainer();
     }
 
@@ -59,7 +55,7 @@ public class GiftOverlayManager {
         mainHandler.post(() -> {
             containerLayout = new LinearLayout(context);
             containerLayout.setOrientation(LinearLayout.VERTICAL);
-            // ВКЛЮЧАЕМ ПЛАВНУЮ АНИМАЦИЮ при добавлении/удалении детей
+            // Плавная анимация при добавлении/удалении
             containerLayout.setLayoutTransition(new LayoutTransition());
 
             WindowManager.LayoutParams params = createContainerLayoutParams();
@@ -75,9 +71,8 @@ public class GiftOverlayManager {
         mainHandler.post(() -> {
             if (containerLayout == null) return;
 
-            // Если достигнут лимит — удаляем самую старую (первую в списке)
+            // Если лимит — удаляем самую старую
             if (containerLayout.getChildCount() >= MAX_VISIBLE) {
-                // Анимация LayoutTransition сработает автоматически
                 containerLayout.removeViewAt(0);
             }
             addNewCard(gift);
@@ -85,31 +80,26 @@ public class GiftOverlayManager {
     }
 
     private void addNewCard(GiftEvent gift) {
-        // Предполагаем, что GiftCardView наследует View (напр. FrameLayout)
         GiftCardView card = new GiftCardView(context);
 
-        // Параметры для размещения внутри LinearLayout контейнера
         LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(cardWidthPx, cardHeightPx);
-        layoutParams.bottomMargin = gapPx; // Отступ между карточками
+        layoutParams.bottomMargin = gapPx;
 
-        // --- РЕАЛИЗАЦИЯ КОПИРОВАНИЯ ---
+        // Копирование username (теперь берем публичную переменную .username напрямую)
         card.setOnClickListener(v -> {
-            String username = gift.getUsername(); // Убедитесь, что в GiftEvent есть этот метод
+            String username = gift.username; 
             if (username != null && !username.isEmpty()) {
                 ClipData clip = ClipData.newPlainText("TikTok Username", username);
                 clipboardManager.setPrimaryClip(clip);
-                // Показываем Toast для UX
                 Toast.makeText(context, "Username " + username + " скопирован", Toast.LENGTH_SHORT).show();
             }
         });
 
         containerLayout.addView(card, layoutParams);
 
-        // Запускаем логику самой карточки (загрузка аватара, имя подарка)
-        // Также передаем callback для самоудаления по таймеру
+        // Показ карточки и коллбек на самоудаление
         card.show(gift, () -> mainHandler.post(() -> {
             if (containerLayout != null) {
-                // Плавное удаление, остальные карточки сами сдвинутся вверх
                 containerLayout.removeView(card);
             }
         }));
@@ -118,14 +108,12 @@ public class GiftOverlayManager {
     public void hideAll() {
         mainHandler.post(() -> {
             if (containerLayout != null) {
-                // Сначала отменяем анимации на самих карточках, если они есть
                 for (int i = 0; i < containerLayout.getChildCount(); i++) {
                     View v = containerLayout.getChildAt(i);
                     if (v instanceof GiftCardView) {
                         ((GiftCardView) v).cancelAndHide();
                     }
                 }
-                // Удаляем контейнер целиком
                 try {
                     windowManager.removeView(containerLayout);
                 } catch (Exception e) {
@@ -136,11 +124,8 @@ public class GiftOverlayManager {
         });
     }
 
-    // Создает параметры для одного большого контейнера
     private WindowManager.LayoutParams createContainerLayoutParams() {
         int marginTopPx = dpToPx(MARGIN_TOP_DP);
-
-        // Рассчитываем общую максимальную высоту контейнера
         int totalHeightPx = (cardHeightPx + gapPx) * MAX_VISIBLE + marginTopPx;
 
         WindowManager.LayoutParams params = new WindowManager.LayoutParams(
@@ -149,7 +134,6 @@ public class GiftOverlayManager {
                 android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O
                         ? WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
                         : WindowManager.LayoutParams.TYPE_PHONE,
-                // ИСПРАВЛЕНО: Добавлен FLAG_NOT_FOCUSABLE
                 WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
                         | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL
                         | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
