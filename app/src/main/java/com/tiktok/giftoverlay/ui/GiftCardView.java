@@ -7,6 +7,9 @@ import android.animation.ObjectAnimator;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
+import android.graphics.Color;
+import android.os.Handler;
+import android.os.Looper;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.animation.DecelerateInterpolator;
@@ -14,7 +17,6 @@ import android.view.animation.OvershootInterpolator;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.TextView;
-import android.widget.Toast;
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.engine.DiskCacheStrategy;
 import com.bumptech.glide.load.model.GlideUrl;
@@ -30,13 +32,14 @@ public class GiftCardView extends FrameLayout {
     private TextView nicknameText;
     private TextView actionText;
     private String currentUsername = "";
+    private boolean isTouching = false;
 
     private static final long DISPLAY_DURATION_MS = 5000;
     private static final long ANIM_IN_MS = 350;
     private static final long ANIM_OUT_MS = 300;
 
     private Runnable hideRunnable;
-    private android.os.Handler handler = new android.os.Handler(android.os.Looper.getMainLooper());
+    private Handler handler = new Handler(Looper.getMainLooper());
 
     public GiftCardView(Context context) {
         super(context);
@@ -50,16 +53,40 @@ public class GiftCardView extends FrameLayout {
         nicknameText = findViewById(R.id.nickname_text);
         actionText   = findViewById(R.id.action_text);
 
-        // Используем onTouchListener — работает в overlay окнах
         setOnTouchListener((v, event) -> {
-            if (event.getAction() == MotionEvent.ACTION_UP) {
-                if (!currentUsername.isEmpty()) {
-                    ClipboardManager clipboard = (ClipboardManager)
-                        context.getSystemService(Context.CLIPBOARD_SERVICE);
-                    ClipData clip = ClipData.newPlainText("username", "@" + currentUsername);
-                    clipboard.setPrimaryClip(clip);
-                    Toast.makeText(context, "@" + currentUsername + " copied!", Toast.LENGTH_SHORT).show();
-                }
+            switch (event.getAction()) {
+                case MotionEvent.ACTION_DOWN:
+                    // Визуальный фидбек при нажатии
+                    setAlpha(0.7f);
+                    break;
+
+                case MotionEvent.ACTION_UP:
+                    setAlpha(1.0f);
+                    // Копируем username в буфер обмена
+                    if (!currentUsername.isEmpty()) {
+                        try {
+                            ClipboardManager clipboard = (ClipboardManager)
+                                context.getApplicationContext()
+                                    .getSystemService(Context.CLIPBOARD_SERVICE);
+                            if (clipboard != null) {
+                                ClipData clip = ClipData.newPlainText(
+                                    "tiktok_username", "@" + currentUsername);
+                                clipboard.setPrimaryClip(clip);
+                            }
+                        } catch (Exception e) {
+                            // ignore
+                        }
+                        // Мигание фоном как фидбек (Toast не работает из Service)
+                        setBackgroundColor(Color.parseColor("#44FFFFFF"));
+                        handler.postDelayed(() ->
+                            setBackground(getContext().getResources()
+                                .getDrawable(R.drawable.bg_gift_card, null)), 300);
+                    }
+                    break;
+
+                case MotionEvent.ACTION_CANCEL:
+                    setAlpha(1.0f);
+                    break;
             }
             return true;
         });
