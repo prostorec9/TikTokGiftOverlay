@@ -4,9 +4,8 @@ import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.animation.AnimatorSet;
 import android.animation.ObjectAnimator;
-import android.content.ClipData;
-import android.content.ClipboardManager;
 import android.content.Context;
+import android.content.Intent;
 import android.graphics.Color;
 import android.os.Handler;
 import android.os.Looper;
@@ -22,6 +21,7 @@ import com.bumptech.glide.load.engine.DiskCacheStrategy;
 import com.bumptech.glide.load.model.GlideUrl;
 import com.bumptech.glide.load.model.LazyHeaders;
 import com.bumptech.glide.request.RequestOptions;
+import com.tiktok.giftoverlay.CopyActivity;
 import com.tiktok.giftoverlay.R;
 import com.tiktok.giftoverlay.model.GiftEvent;
 
@@ -51,47 +51,49 @@ public class GiftCardView extends FrameLayout {
         giftImage    = findViewById(R.id.gift_image);
         nicknameText = findViewById(R.id.nickname_text);
         actionText   = findViewById(R.id.action_text);
-
-        setOnTouchListener((v, event) -> {
-            switch (event.getAction()) {
-                case MotionEvent.ACTION_DOWN:
-                    setAlpha(0.6f);
-                    return true;
-
-                case MotionEvent.ACTION_UP:
-                    setAlpha(1.0f);
-                    if (!currentUsername.isEmpty()) {
-                        copyToClipboard(context, currentUsername);
-                        // Мигание белым — визуальный фидбек
-                        setBackgroundColor(Color.parseColor("#66FFFFFF"));
-                        handler.postDelayed(() -> {
-                            try {
-                                setBackground(context.getResources()
-                                    .getDrawable(R.drawable.bg_gift_card, null));
-                            } catch (Exception ignored) {}
-                        }, 250);
-                    }
-                    return true;
-
-                case MotionEvent.ACTION_CANCEL:
-                    setAlpha(1.0f);
-                    return true;
-            }
-            return false;
-        });
-
         setTranslationX(-2000f);
         setAlpha(0f);
     }
 
-    private void copyToClipboard(Context context, String username) {
-        try {
-            ClipboardManager cm = (ClipboardManager)
-                context.getApplicationContext().getSystemService(Context.CLIPBOARD_SERVICE);
-            if (cm != null) {
-                cm.setPrimaryClip(ClipData.newPlainText("username", "@" + username));
-            }
-        } catch (Exception ignored) {}
+    /**
+     * dispatchTouchEvent — перехватывает touch ДО любой дочерней вьюхи
+     * Это единственный надёжный способ на Android 12/13 Samsung + MIUI
+     */
+    @Override
+    public boolean dispatchTouchEvent(MotionEvent ev) {
+        switch (ev.getAction()) {
+            case MotionEvent.ACTION_DOWN:
+                setAlpha(0.6f);
+                return true;
+
+            case MotionEvent.ACTION_UP:
+                setAlpha(1.0f);
+                if (!currentUsername.isEmpty()) {
+                    // Запускаем прозрачную Activity для копирования
+                    // Это работает на Android 12/13 на ЛЮБОМ производителе
+                    try {
+                        Intent intent = CopyActivity.createIntent(
+                            getContext().getApplicationContext(), currentUsername);
+                        getContext().getApplicationContext().startActivity(intent);
+                    } catch (Exception e) {
+                        // ignore
+                    }
+                    // Мигание как визуальный фидбек
+                    setBackgroundColor(Color.parseColor("#88FFFFFF"));
+                    handler.postDelayed(() -> {
+                        try {
+                            setBackground(getContext().getResources()
+                                .getDrawable(R.drawable.bg_gift_card, null));
+                        } catch (Exception ignored) {}
+                    }, 250);
+                }
+                return true;
+
+            case MotionEvent.ACTION_CANCEL:
+                setAlpha(1.0f);
+                return true;
+        }
+        return true;
     }
 
     public void show(GiftEvent gift, Runnable onHidden) {
