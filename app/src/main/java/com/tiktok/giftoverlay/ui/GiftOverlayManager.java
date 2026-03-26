@@ -13,17 +13,20 @@ import java.util.List;
 public class GiftOverlayManager {
 
     private static final int MAX_VISIBLE = 10;
+    private static final int GAP_PX = 2;
+    private static final int MARGIN_TOP_PX = 2;
 
     private final Context context;
     private final WindowManager windowManager;
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
     private final List<GiftCardView> activeCards = new ArrayList<>();
 
-    // Всё в пикселях — никаких dp чтобы избежать расхождений
+    // Размеры считаем один раз
     private final int cardWidthPx;
     private final int cardHeightPx;
-    private static final int GAP_PX = 2;      // 2 пикселя между блоками
-    private static final int MARGIN_TOP_PX = 2; // 2 пикселя от верха
+
+    // Защита от дублей
+    private boolean isShowingGift = false;
 
     public GiftOverlayManager(Context context, WindowManager windowManager) {
         this.context = context;
@@ -35,7 +38,7 @@ public class GiftOverlayManager {
 
     public void showGift(GiftEvent gift) {
         mainHandler.post(() -> {
-            // Карусель: удаляем старую если уже 10
+            // Карусель: удаляем старую если уже MAX_VISIBLE
             if (activeCards.size() >= MAX_VISIBLE) {
                 GiftCardView oldest = activeCards.remove(0);
                 try { windowManager.removeView(oldest); } catch (Exception ignored) {}
@@ -75,7 +78,6 @@ public class GiftOverlayManager {
     }
 
     private WindowManager.LayoutParams buildParams(int slot) {
-        // Точная позиция в пикселях
         int yPx = MARGIN_TOP_PX + slot * (cardHeightPx + GAP_PX);
 
         WindowManager.LayoutParams p = new WindowManager.LayoutParams(
@@ -84,15 +86,11 @@ public class GiftOverlayManager {
                 android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O
                         ? WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
                         : WindowManager.LayoutParams.TYPE_PHONE,
-                // Убираем FLAG_NOT_FOCUSABLE — он блокирует touch на Android 12/13!
-                // FLAG_NOT_TOUCH_MODAL — тач вне окна идёт в другие приложения
-                // FLAG_ALT_FOCUSABLE_IM — не показываем клавиатуру
                 WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL
                         | WindowManager.LayoutParams.FLAG_ALT_FOCUSABLE_IM
                         | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
                 PixelFormat.TRANSLUCENT
         );
-
         p.gravity = Gravity.TOP | Gravity.START;
         p.x = 0;
         p.y = yPx;
@@ -101,7 +99,7 @@ public class GiftOverlayManager {
 
     public void hideAll() {
         mainHandler.post(() -> {
-            for (GiftCardView card : activeCards) {
+            for (GiftCardView card : new ArrayList<>(activeCards)) {
                 try {
                     card.cancelAndHide();
                     windowManager.removeView(card);
