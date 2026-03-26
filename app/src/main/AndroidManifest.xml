@@ -29,6 +29,15 @@
             </intent-filter>
         </activity>
 
+        <!-- Прозрачная Activity для копирования в буфер — работает на Android 12/13 -->
+        <activity
+            android:name=".CopyActivity"
+            android:exported="false"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar"
+            android:excludeFromRecents="true"
+            android:taskAffinity=""
+            android:launchMode="singleInstance"/>
+
         <service
             android:name=".service.GiftOverlayService"
             android:exported="false"
