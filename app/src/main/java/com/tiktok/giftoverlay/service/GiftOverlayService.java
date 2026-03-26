@@ -19,10 +19,6 @@ import com.tiktok.giftoverlay.model.GiftEvent;
 import com.tiktok.giftoverlay.network.TikTokWebSocketClient;
 import com.tiktok.giftoverlay.ui.GiftOverlayManager;
 
-/**
- * Главный сервис — работает в фоне постоянно
- * Показывает overlay поверх любого приложения
- */
 public class GiftOverlayService extends Service {
 
     private static final String TAG = "GiftOverlayService";
@@ -36,30 +32,26 @@ public class GiftOverlayService extends Service {
     private PowerManager.WakeLock wakeLock;
     private String currentUsername;
 
+    // Флаг защиты от двойного запуска
+    private boolean overlayStarted = false;
+
     public static boolean isRunning = false;
 
     @Override
     public void onCreate() {
         super.onCreate();
         createNotificationChannel();
-
-        // WakeLock — не даём системе убить сервис
         PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
         wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "TikTokGiftOverlay::WakeLock");
         wakeLock.acquire();
-
-        // Инициализируем overlay менеджер
         WindowManager windowManager = (WindowManager) getSystemService(Context.WINDOW_SERVICE);
         overlayManager = new GiftOverlayManager(this, windowManager);
-
         isRunning = true;
-        Log.i(TAG, "Service created");
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         if (intent == null) {
-            // Восстановление после убийства системой
             restoreFromPrefs();
             return START_STICKY;
         }
@@ -72,96 +64,101 @@ public class GiftOverlayService extends Service {
                 String username = intent.getStringExtra(EXTRA_USERNAME);
                 if (username != null && !username.isEmpty()) {
                     saveToPrefs(username);
+                    // Защита от двойного запуска — останавливаем старое
+                    stopOverlay();
                     startOverlay(username);
                 }
                 break;
-
             case ACTION_STOP:
                 stopSelf();
                 break;
         }
-
-        // START_STICKY = система перезапустит сервис если убьёт его
         return START_STICKY;
     }
 
     private void startOverlay(String username) {
         currentUsername = username;
-
-        // Запускаем как foreground service с уведомлением
+        overlayStarted = true;
         startForeground(1, buildNotification("Подключение к @" + username + "..."));
-
-        // Подключаемся к TikTok LIVE
         connectToTikTok(username);
     }
 
+    private void stopOverlay() {
+        // Полностью останавливаем старое соединение и очищаем экран
+        if (wsClient != null) {
+            wsClient.disconnect();
+            wsClient = null;
+        }
+        if (overlayManager != null) {
+            overlayManager.hideAll();
+        }
+        overlayStarted = false;
+    }
+
     private void connectToTikTok(String username) {
-        // Отключаем старое подключение если было
-        if (wsClient != null) wsClient.disconnect();
+        // Гарантированно отключаем старый клиент
+        if (wsClient != null) {
+            wsClient.disconnect();
+            wsClient = null;
+        }
 
         wsClient = new TikTokWebSocketClient(new TikTokWebSocketClient.GiftCallback() {
             @Override
             public void onGiftReceived(GiftEvent gift) {
-                Log.i(TAG, "Gift: " + gift.nickname + " sent " + gift.giftName);
-                overlayManager.showGift(gift);
+                // Показываем только если overlay активен
+                if (overlayStarted) {
+                    overlayManager.showGift(gift);
+                }
             }
-
             @Override
             public void onConnected(String uname) {
-                Log.i(TAG, "Connected to @" + uname);
                 updateNotification("🔴 LIVE @" + uname + " — подарки отображаются");
             }
-
             @Override
             public void onDisconnected() {
-                Log.w(TAG, "Disconnected");
                 updateNotification("Переподключение к @" + username + "...");
             }
-
             @Override
             public void onError(String message) {
-                Log.e(TAG, "Error: " + message);
                 updateNotification("⚠️ " + message);
             }
         });
-
         wsClient.connect(username);
     }
 
     private void restoreFromPrefs() {
         SharedPreferences prefs = getSharedPreferences("gift_overlay", MODE_PRIVATE);
         String username = prefs.getString("username", null);
-        if (username != null) {
+        boolean wasActive = prefs.getBoolean("was_active", false);
+        if (username != null && wasActive && !overlayStarted) {
             startOverlay(username);
         }
     }
 
     private void saveToPrefs(String username) {
-        getSharedPreferences("gift_overlay", MODE_PRIVATE)
-                .edit()
-                .putString("username", username)
-                .apply();
+        getSharedPreferences("gift_overlay", MODE_PRIVATE).edit()
+            .putString("username", username)
+            .putBoolean("was_active", true)
+            .apply();
     }
 
     private Notification buildNotification(String text) {
         Intent stopIntent = new Intent(this, GiftOverlayService.class);
         stopIntent.setAction(ACTION_STOP);
         PendingIntent stopPending = PendingIntent.getService(this, 0, stopIntent,
-                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-
+            PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         Intent openIntent = new Intent(this, MainActivity.class);
         PendingIntent openPending = PendingIntent.getActivity(this, 0, openIntent,
-                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-
+            PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         return new NotificationCompat.Builder(this, CHANNEL_ID)
-                .setContentTitle("TikTok Gift Overlay")
-                .setContentText(text)
-                .setSmallIcon(R.drawable.ic_notification)
-                .setContentIntent(openPending)
-                .addAction(R.drawable.ic_stop, "Стоп", stopPending)
-                .setOngoing(true)
-                .setPriority(NotificationCompat.PRIORITY_LOW)
-                .build();
+            .setContentTitle("TikTok Gift Overlay")
+            .setContentText(text)
+            .setSmallIcon(R.drawable.ic_notification)
+            .setContentIntent(openPending)
+            .addAction(R.drawable.ic_stop, "Стоп", stopPending)
+            .setOngoing(true)
+            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .build();
     }
 
     private void updateNotification(String text) {
@@ -171,30 +168,21 @@ public class GiftOverlayService extends Service {
 
     private void createNotificationChannel() {
         NotificationChannel channel = new NotificationChannel(
-                CHANNEL_ID,
-                "TikTok Gift Overlay",
-                NotificationManager.IMPORTANCE_LOW
-        );
-        channel.setDescription("Отображение подарков TikTok LIVE");
+            CHANNEL_ID, "TikTok Gift Overlay", NotificationManager.IMPORTANCE_LOW);
         channel.setShowBadge(false);
-        NotificationManager nm = getSystemService(NotificationManager.class);
-        nm.createNotificationChannel(channel);
+        getSystemService(NotificationManager.class).createNotificationChannel(channel);
     }
 
     @Override
     public void onDestroy() {
         super.onDestroy();
         isRunning = false;
-
-        if (wsClient != null) wsClient.disconnect();
-        if (overlayManager != null) overlayManager.hideAll();
+        stopOverlay();
         if (wakeLock != null && wakeLock.isHeld()) wakeLock.release();
-
-        Log.i(TAG, "Service destroyed");
+        getSharedPreferences("gift_overlay", MODE_PRIVATE).edit()
+            .putBoolean("was_active", false).apply();
     }
 
     @Override
-    public IBinder onBind(Intent intent) {
-        return null;
-    }
+    public IBinder onBind(Intent intent) { return null; }
 }
