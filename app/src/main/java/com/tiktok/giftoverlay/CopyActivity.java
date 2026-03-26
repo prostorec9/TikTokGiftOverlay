@@ -8,11 +8,6 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.widget.Toast;
 
-/**
- * Прозрачная Activity — единственный надёжный способ
- * скопировать в буфер обмена из overlay на Android 12/13
- * на Samsung и Xiaomi (MIUI)
- */
 public class CopyActivity extends Activity {
 
     public static final String EXTRA_USERNAME = "username_to_copy";
@@ -29,25 +24,17 @@ public class CopyActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
         String username = getIntent().getStringExtra(EXTRA_USERNAME);
         if (username != null && !username.isEmpty()) {
             try {
                 ClipboardManager cm = (ClipboardManager)
                     getSystemService(Context.CLIPBOARD_SERVICE);
                 if (cm != null) {
-                    cm.setPrimaryClip(
-                        ClipData.newPlainText("username", "@" + username));
-                    Toast.makeText(this,
-                        "@" + username + " copied!",
-                        Toast.LENGTH_SHORT).show();
+                    cm.setPrimaryClip(ClipData.newPlainText("username", "@" + username));
+                    Toast.makeText(this, "@" + username + " copied!", Toast.LENGTH_SHORT).show();
                 }
-            } catch (Exception e) {
-                // ignore
-            }
+            } catch (Exception ignored) {}
         }
-
-        // Сразу закрываемся — пользователь не заметит
         finish();
     }
 }
