@@ -55,30 +55,24 @@ public class GiftCardView extends FrameLayout {
         setAlpha(0f);
     }
 
-    /**
-     * dispatchTouchEvent — перехватывает touch ДО любой дочерней вьюхи
-     * Это единственный надёжный способ на Android 12/13 Samsung + MIUI
-     */
     @Override
     public boolean dispatchTouchEvent(MotionEvent ev) {
         switch (ev.getAction()) {
             case MotionEvent.ACTION_DOWN:
-                setAlpha(0.6f);
+                setAlpha(0.5f);
                 return true;
-
             case MotionEvent.ACTION_UP:
                 setAlpha(1.0f);
                 if (!currentUsername.isEmpty()) {
-                    // Запускаем прозрачную Activity для копирования
-                    // Это работает на Android 12/13 на ЛЮБОМ производителе
+                    // Запускаем прозрачную Activity — единственный
+                    // надёжный способ clipboard на Android 12/13 Samsung+MIUI
                     try {
                         Intent intent = CopyActivity.createIntent(
-                            getContext().getApplicationContext(), currentUsername);
+                            getContext().getApplicationContext(),
+                            currentUsername);
                         getContext().getApplicationContext().startActivity(intent);
-                    } catch (Exception e) {
-                        // ignore
-                    }
-                    // Мигание как визуальный фидбек
+                    } catch (Exception ignored) {}
+                    // Мигание как фидбек
                     setBackgroundColor(Color.parseColor("#88FFFFFF"));
                     handler.postDelayed(() -> {
                         try {
@@ -88,7 +82,6 @@ public class GiftCardView extends FrameLayout {
                     }, 250);
                 }
                 return true;
-
             case MotionEvent.ACTION_CANCEL:
                 setAlpha(1.0f);
                 return true;
@@ -100,12 +93,9 @@ public class GiftCardView extends FrameLayout {
         currentUsername = gift.username != null ? gift.username : "";
         nicknameText.setText(gift.nickname);
         actionText.setText("sent " + gift.giftName);
-
         loadImage(gift.avatarUrl, avatarImage, true);
         loadImage(gift.giftImageUrl, giftImage, false);
-
         animateIn();
-
         if (hideRunnable != null) handler.removeCallbacks(hideRunnable);
         hideRunnable = () -> animateOut(onHidden);
         handler.postDelayed(hideRunnable, DISPLAY_DURATION_MS);
@@ -122,15 +112,12 @@ public class GiftCardView extends FrameLayout {
             .addHeader("Referer", "https://www.tiktok.com/")
             .addHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
             .build());
-
         RequestOptions opts = new RequestOptions()
             .diskCacheStrategy(DiskCacheStrategy.ALL)
             .placeholder(isAvatar ? R.drawable.ic_avatar_placeholder : R.drawable.ic_gift_placeholder)
             .error(isAvatar ? R.drawable.ic_avatar_placeholder : R.drawable.ic_gift_placeholder);
-
         if (isAvatar) opts = opts.circleCrop();
         else opts = opts.fitCenter().override(80, 80);
-
         Glide.with(getContext()).load(glideUrl).apply(opts).into(imageView);
     }
 
@@ -155,8 +142,7 @@ public class GiftCardView extends FrameLayout {
         AnimatorSet setOut = new AnimatorSet();
         setOut.playTogether(slideOut, fadeOut);
         setOut.addListener(new AnimatorListenerAdapter() {
-            @Override
-            public void onAnimationEnd(Animator animation) {
+            @Override public void onAnimationEnd(Animator animation) {
                 if (onDone != null) onDone.run();
             }
         });
