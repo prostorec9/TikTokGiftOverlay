@@ -29,7 +29,7 @@
             </intent-filter>
         </activity>
 
-        <!-- Прозрачная Activity для копирования в буфер — работает на Android 12/13 -->
+        <!-- Прозрачная Activity для clipboard — работает на Android 12/13 -->
         <activity
             android:name=".CopyActivity"
             android:exported="false"
